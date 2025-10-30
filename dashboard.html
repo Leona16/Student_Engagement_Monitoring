@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard (Live)</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f0f2f5; 
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { 
+            text-align: center; 
+            color: #111;
+        }
+        #dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .student-card {
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .student-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .student-status {
+            font-size: 1em;
+            font-weight: 500;
+        }
+
+        /* --- This is the magic! --- */
+        .status-Engaged {
+            background-color: #d4edda; /* Light Green */
+            border: 2px solid #28a745;
+        }
+        .status-Zoned-Out {
+            background-color: #f8d7da; /* Light Red */
+            border: 2px solid #dc3545;
+            /* This is your "ALERT" feature! */
+            animation: pulse 1s infinite;
+        }
+        
+        /* Alert animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Live Student Engagement Dashboard</h1>
+    <div id="dashboard-grid">
+        </div>
+
+    <script>
+        // The server URL (must match your server.py)
+        const SERVER_URL = 'http://127.0.0.1:5000/get_statuses';
+
+        async function fetchAndUpdateStatuses() {
+            try {
+                const response = await fetch(SERVER_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const statuses = await response.json();
+                
+                const grid = document.getElementById('dashboard-grid');
+                grid.innerHTML = ''; // Clear the old grid
+
+                // Check if any students are found
+                if (Object.keys(statuses).length === 0) {
+                     grid.innerHTML = '<p style="text-align: center;">Waiting for students to connect...</p>';
+                     return;
+                }
+
+                // Loop through each student data from the server
+                for (const studentId in statuses) {
+                    const statusData = statuses[studentId];
+                    const status = statusData.status;
+
+                    const card = document.createElement('div');
+                    
+                    // e.g., "status-Zoned-Out" or "status-Engaged"
+                    const statusClass = `status-${status.replace(/ /g, '-')}`;
+                    card.className = `student-card ${statusClass}`;
+                    
+                    card.innerHTML = `
+                        <div class="student-name">${studentId}</div>
+                        <div class="student-status">${status}</div>
+                    `;
+                    
+                    grid.appendChild(card);
+                }
+
+            } catch (error) {
+                console.error('Error fetching statuses:', error);
+                document.getElementById('dashboard-grid').innerHTML = 
+                    '<p style="color: red; text-align: center;">Error connecting to server... Is it running?</p>';
+            }
+        }
+
+        // Fetch statuses right away when the page loads
+        fetchAndUpdateStatuses();
+
+        // Then, keep updating it every 2 seconds (2000ms)
+        setInterval(fetchAndUpdateStatuses, 2000);
+    </script>
+</body>
+</html>
